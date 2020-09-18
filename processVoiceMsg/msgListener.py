@@ -71,7 +71,7 @@ def start():
     # updater.start_polling()
 
     PORT = int(os.environ.get('PORT', '8443'))
-    updater = Updater(TELEGRAM_KEY)
+
     # add handlers
     updater.start_webhook(listen="0.0.0.0",
                           port=PORT,
