@@ -9,8 +9,6 @@ import os
 from processVoiceMsg.config import FOLDER_ID, IAM_TOKEN, TELEGRAM_KEY
 from processVoiceMsg.dbservice import create_tables, insert_msg
 
-PORT = int(os.environ.get('PORT', 5000))
-
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -71,8 +69,14 @@ def start():
     dispatcher.add_handler(voice_handler)
 
     # updater.start_polling()
+
+    PORT = int(os.environ.get('PORT', '8443'))
+    updater = Updater(TELEGRAM_KEY)
+    # add handlers
     updater.start_webhook(listen="0.0.0.0",
-                          port=int(PORT),
+                          port=PORT,
                           url_path=TELEGRAM_KEY)
-    updater.bot.setWebhook('https://throw-shade-bot.herokuapp.com/' + TELEGRAM_KEY)
+    updater.bot.set_webhook("https://throw-shade-bot.herokuapp.com/" + TELEGRAM_KEY)
+    updater.idle()
+
     logging.info('Bot is running on port: ', PORT)
