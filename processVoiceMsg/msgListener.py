@@ -4,12 +4,15 @@ import urllib.request
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import logging
-
+import os
 
 from processVoiceMsg.config import FOLDER_ID, IAM_TOKEN, TELEGRAM_KEY
 from processVoiceMsg.dbservice import create_tables, insert_msg
 
+PORT = int(os.environ.get('PORT', 5000))
+
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def start(update, context):
@@ -67,5 +70,9 @@ def start():
     voice_handler = MessageHandler(Filters.voice, voice)
     dispatcher.add_handler(voice_handler)
 
-    updater.start_polling()
-    logging.info('Bot is running ...')
+    # updater.start_polling()
+    updater.start_webhook(listen="0.0.0.0",
+                          port=int(PORT),
+                          url_path=TELEGRAM_KEY)
+    updater.bot.setWebhook('https://throw-shade-bot.herokuapp.com/' + TELEGRAM_KEY)
+    logging.info('Bot is running on port: ', PORT)
