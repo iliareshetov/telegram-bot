@@ -1,9 +1,13 @@
 import logging
+
+import pytz
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 import datetime
 import calendar
 
 from processVoiceMsg.dbservice import insert_booking, fetch_all_bookings_for_user
+
+tz = pytz.timezone('Europe/Helsinki')
 
 
 def get_users_bookings(update, context):
@@ -30,7 +34,7 @@ def new_booking(update, context):
 
 
 def calendar_handler(update, context):
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(tz=tz)
     update.message.reply_text(f'Please select a date: \nCurrent time: {now.strftime("%d.%m.%Y, %H:%M")}',
                               reply_markup=create_calendar())
 
@@ -43,7 +47,7 @@ def inline_handler(update, context):
         booking_id = insert_booking(update.effective_chat.id, update.effective_chat.first_name, date)
         logging.info(f'successfully inserted booking_id: {booking_id}')
         context.bot.send_message(chat_id=update.callback_query.from_user.id,
-                                 text="You selected %s" % (date.strftime("%d/%m/%Y")),
+                                 text="You selected %s" % (date.strftime("%d.%m.%Y, %H:%M")),
                                  reply_markup=ReplyKeyboardRemove())
 
 
@@ -74,7 +78,7 @@ def create_calendar(year=None, month=None):
     :param int month: Month to use in the calendar, if None the current month is used.
     :return: Returns the InlineKeyboardMarkup object with the calendar.
     """
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(tz=tz)
     if year == None: year = now.year
     if month == None: month = now.month
     data_ignore = create_callback_data("IGNORE", year, month, 0)
@@ -115,7 +119,7 @@ def process_calendar_selection(update, context):
     :return: Returns a tuple (Boolean,datetime.datetime), indicating if a date is selected
                 and returning the date if so.
     """
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(tz=tz)
 
     ret_data = (False, None)
     query = update.callback_query
@@ -128,7 +132,7 @@ def process_calendar_selection(update, context):
                                       chat_id=query.message.chat_id,
                                       message_id=query.message.message_id
                                       )
-        ret_data = True, datetime.datetime(int(year), int(month), int(day),now.hour, now.minute, now.second)
+        ret_data = True, datetime.datetime(int(year), int(month), int(day), now.hour, now.minute, now.second)
     elif action == "PREV-MONTH":
         pre = curr - datetime.timedelta(days=1)
         context.bot.edit_message_text(text=query.message.text,
