@@ -1,5 +1,5 @@
-from processVoiceMsg.msgListener import start
+from processVoiceMsg.msgListener import  main
 
 if __name__ == '__main__':
-    start()
+    main()
 

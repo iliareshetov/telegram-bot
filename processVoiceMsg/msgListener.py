@@ -1,11 +1,13 @@
 import json
+import os
 import urllib
 import urllib.request
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+import telegram
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 import logging
-import os
 
+from booking.booking import calendar_handler, inline_handler, get_users_bookings
 from processVoiceMsg.config import FOLDER_ID, IAM_TOKEN, TELEGRAM_KEY
 from processVoiceMsg.dbservice import create_tables, insert_msg
 
@@ -14,15 +16,15 @@ logger = logging.getLogger(__name__)
 
 
 def start(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="I only understand voice messages")
+    menu = '/newbooking - забронировать время в сервисе \n' \
+           '/showhistory - посмотреть историю бронирований';
+    context.bot.send_message(chat_id=update.effective_chat.id, text=menu)
     logging.info(f'Start method called: {update}')
     logging.info(f'Start method called context: {context}')
 
 
 def echo(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text=update.message.text)
-    logging.info(f'echo method called update: {update}')
-    logging.info(f'echo method called context: {context}')
+    context.bot.send_message(chat_id=update.effective_chat.id, text="type: / to see the list of available commands")
 
 
 def voice(update, context):
@@ -53,30 +55,46 @@ def voice(update, context):
         return context.bot.send_message(chat_id=update.effective_chat.id, text=decodedData.get("result"))
 
 
-def start():
+def main():
     create_tables()
 
     updater = Updater(token=TELEGRAM_KEY, use_context=True)
-    dispatcher = updater.dispatcher
 
+    # add handlers
     start_handler = CommandHandler('start', start)
-    dispatcher.add_handler(start_handler)
+    updater.dispatcher.add_handler(start_handler)
 
     echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
-    dispatcher.add_handler(echo_handler)
+    updater.dispatcher.add_handler(echo_handler)
 
     voice_handler = MessageHandler(Filters.voice, voice)
-    dispatcher.add_handler(voice_handler)
+    updater.dispatcher.add_handler(voice_handler)
 
-    # updater.start_polling()
+    new_booking_handler = CommandHandler('newbooking', calendar_handler)
+    updater.dispatcher.add_handler(new_booking_handler)
+
+    show_history_handler = CommandHandler('showhistory', get_users_bookings)
+    updater.dispatcher.add_handler(show_history_handler)
+
+    updater.dispatcher.add_handler(CallbackQueryHandler(inline_handler))
 
     PORT = int(os.environ.get('PORT', '8443'))
 
-    # add handlers
+    # Start the Bot
     updater.start_webhook(listen="0.0.0.0",
                           port=PORT,
                           url_path=TELEGRAM_KEY)
     updater.bot.set_webhook("https://throw-shade-bot.herokuapp.com/" + TELEGRAM_KEY)
+
+    # updater.start_polling()
+
+    logging.info('Bot is running on port...')
+
+    # Run the bot until the user presses Ctrl-C or the process receives SIGINT,
+    # SIGTERM or SIGABRT
     updater.idle()
 
-    logging.info('Bot is running on port: ', PORT)
+    bot = telegram.Bot(TELEGRAM_KEY)
+    # for x in range(6):
+    #     print(x)
+    #     bot.send_message(chat_id=1172682717, text="I'm sorry Dave I'm afraid I can't do that.")
